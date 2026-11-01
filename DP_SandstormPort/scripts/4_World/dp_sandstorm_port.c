@@ -47,14 +47,17 @@ class DPSandstormEffects
 		{
 			int haveStorm = 0;
 			int active = 0;
+			int scripted = 0;
 			string pos = "none";
 			if (storm)
 			{
 				haveStorm = 1;
 				active = AsInt(storm.IsActive());
 				pos = storm.GetPosition().ToString();
+				ScriptedSandstormController hbssc = ScriptedSandstormController.Cast(storm);
+				scripted = AsInt(hbssc != null);
 			}
-			Print("[DP_SANDSTORM] hb tick=" + s_tickCount + " weather=" + AsInt(weather != null) + " storm=" + haveStorm + " active=" + active + " pos=" + pos);
+			Print("[DP_SANDSTORM] hb tick=" + s_tickCount + " weather=" + AsInt(weather != null) + " storm=" + haveStorm + " scripted=" + scripted + " active=" + active + " pos=" + pos);
 		}
 
 		if (!weather || !storm)
