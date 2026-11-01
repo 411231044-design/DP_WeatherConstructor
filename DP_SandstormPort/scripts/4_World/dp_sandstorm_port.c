@@ -36,22 +36,32 @@ class DPSandstormEffects
 	{
 		s_tickCount++;
 		Weather weather = g_Game.GetWeather();
-		if (!weather)
+		Sandstorm storm = null;
+		if (weather)
 		{
-			return;
+			storm = weather.GetSandstorm();
 		}
-		Sandstorm storm = weather.GetSandstorm();
-		if (!storm)
+
+		// heartbeat ДО всех ворот: первые три тика и далее каждые 20
+		if (s_tickCount <= 3 || s_tickCount % 20 == 0)
+		{
+			int haveStorm = 0;
+			int active = 0;
+			string pos = "none";
+			if (storm)
+			{
+				haveStorm = 1;
+				active = AsInt(storm.IsActive());
+				pos = storm.GetPosition().ToString();
+			}
+			Print("[DP_SANDSTORM] hb tick=" + s_tickCount + " weather=" + AsInt(weather != null) + " storm=" + haveStorm + " active=" + active + " pos=" + pos);
+		}
+
+		if (!weather || !storm)
 		{
 			return;
 		}
 		ScriptedSandstormController ssc = ScriptedSandstormController.Cast(storm);
-
-		// heartbeat: первые три тика и далее каждые 20 — состояние в журнал
-		if (s_tickCount <= 3 || s_tickCount % 20 == 0)
-		{
-			Print("[DP_SANDSTORM] hb tick=" + s_tickCount + " active=" + AsInt(storm.IsActive()) + " pos=" + storm.GetPosition() + " mag=" + storm.GetMagnitude());
-		}
 
 		// чистка данных отключившихся: серверная ветка OnUpdate её не делает
 		if (ssc && s_tickCount % CLEANUP_EVERY == 0)
