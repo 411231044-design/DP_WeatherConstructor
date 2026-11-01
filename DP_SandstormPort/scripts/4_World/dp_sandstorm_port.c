@@ -47,6 +47,12 @@ class DPSandstormEffects
 		}
 		ScriptedSandstormController ssc = ScriptedSandstormController.Cast(storm);
 
+		// heartbeat: первые три тика и далее каждые 20 — состояние в журнал
+		if (s_tickCount <= 3 || s_tickCount % 20 == 0)
+		{
+			Print("[DP_SANDSTORM] hb tick=" + s_tickCount + " active=" + AsInt(storm.IsActive()) + " pos=" + storm.GetPosition() + " mag=" + storm.GetMagnitude());
+		}
+
 		// чистка данных отключившихся: серверная ветка OnUpdate её не делает
 		if (ssc && s_tickCount % CLEANUP_EVERY == 0)
 		{
