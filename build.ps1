@@ -1,4 +1,4 @@
-# Сборка @DP_SandstormPort: config.cpp -> PBO через AddonBuilder (DayZ Tools).
+# Сборка @DP_WeatherConstructor: config.cpp -> PBO через AddonBuilder (DayZ Tools).
 # Использование: .\build.ps1 [-AddonBuilder <путь>] [-OutDir <куда>]
 [CmdletBinding()]
 param(
@@ -7,13 +7,13 @@ param(
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
-if (-not $OutDir) { $OutDir = Join-Path $root "@DP_SandstormPort" }
+if (-not $OutDir) { $OutDir = Join-Path $root "@DP_WeatherConstructor" }
 if (-not (Test-Path $AddonBuilder)) { throw "AddonBuilder не найден: $AddonBuilder" }
 
 New-Item -ItemType Directory -Force -Path (Join-Path $OutDir "addons") | Out-Null
-& $AddonBuilder (Join-Path $root "DP_SandstormPort") $OutDir -packonly -prefix=DP_SandstormPort -clear
+& $AddonBuilder (Join-Path $root "DP_WeatherConstructor") $OutDir -packonly -prefix=DP_WeatherConstructor -clear
 if ($LASTEXITCODE -ne 0) { throw "AddonBuilder вернул $LASTEXITCODE" }
-$built = Join-Path $OutDir "DP_SandstormPort.pbo"
+$built = Join-Path $OutDir "DP_WeatherConstructor.pbo"
 if (Test-Path $built) { Move-Item -Force $built (Join-Path $OutDir "addons") }
 Get-ChildItem (Join-Path $OutDir "addons") -Filter *.pbo | ForEach-Object {
     Write-Host ("готово: " + $_.FullName) -ForegroundColor Green

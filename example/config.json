@@ -17,6 +17,26 @@
         "ShockPerSecond": 0.25,
         "MinIntensity": 0.2
     },
+    "Blizzard": {
+        "Enabled": true,
+        "RandomStart": {
+            "Enabled": true,
+            "ChancePercent": 10,
+            "MinOvercast": 0.7,
+            "CheckIntervalMinutes": 15
+        },
+        "GatherMinutes": 3,
+        "DurationMinutes": 12,
+        "MeltMinutes": 20,
+        "SnowfallIntensity": 0.9,
+        "SnowfallThreshold": 0.5,
+        "WindMaximum": 20,
+        "VolFogStormDensity": 0.3,
+        "VolFogMeltDensity": 0.1,
+        "MeltHeightDensity": 0.02,
+        "TemperatureDelta": -15,
+        "Thundersnow": true
+    },
     "Logging": {
         "LogHits": true,
         "Heartbeat": true

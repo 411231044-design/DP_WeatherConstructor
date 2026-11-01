@@ -1,6 +1,6 @@
 class CfgPatches
 {
-	class DP_SandstormPort
+	class DP_WeatherConstructor
 	{
 		units[] = {};
 		weapons[] = {};
@@ -11,18 +11,18 @@ class CfgPatches
 
 class CfgMods
 {
-	class DP_SandstormPort
+	class DP_WeatherConstructor
 	{
-		dir = "DP_SandstormPort";
+		dir = "DP_WeatherConstructor";
 		picture = "";
 		action = "";
 		hideName = 1;
 		hidePicture = 1;
-		name = "DP Sandstorm Port";
+		name = "DP Weather Constructor";
 		credits = "KitTysh";
 		author = "KitTysh";
 		authorID = "0";
-		version = "0.1.0";
+		version = "0.2.0";
 		extra = 0;
 		type = "servermod";
 
@@ -33,17 +33,19 @@ class CfgMods
 			class worldScriptModule
 			{
 				value = "";
-				files[] = {"DP_SandstormPort/scripts/4_World"};
+				files[] = {"DP_WeatherConstructor/scripts/4_World"};
 			};
 			class missionScriptModule
 			{
 				value = "";
-				files[] = {"DP_SandstormPort/scripts/5_Mission"};
+				files[] = {"DP_WeatherConstructor/scripts/5_Mission"};
 			};
 		};
 	};
 };
 
+// Маршрут песчаной бури (движковая секция, читается при загрузке мира).
+// particlePath ОБЯЗАТЕЛЬНО существующая частица: дефолтный путь — файл DLC.
 class CfgWorlds
 {
 	class ChernarusPlus
