@@ -74,3 +74,26 @@ class CfgWorlds
 DayZ 1.30.164.200, выделенный сервер Windows, Черногорка, ванильный клиент:
 фронт ходит по маршруту циклами (~10 мин проход + пауза), клиент видит бурю без модов,
 крашей нет. Детали экспериментов — в указанном выше research-документе.
+
+## Настройка
+
+Все игровые параметры — в `DarkProjectConfig/SandstormPort/config.json` в профиле
+сервера (паттерн DP_AdminMenu): файл создаётся с дефолтами при первом старте,
+правится и подхватывается после перезапуска сервера. Пример — [example/config.json](example/config.json).
+
+```json
+{
+    "AutoStartEnabled": true,   // мод сам крутит цикл бурь
+    "GatherTimeSeconds": 30,    // разгон магнитуды, с
+    "CooldownSeconds": 60,      // пауза между проходами, с
+    "DamageEnabled": true,      // прямой урон в буре
+    "HealthPerSecond": 0.6,     // хп/с при интенсивности 1
+    "ShockPerSecond": 0.25,     // шок/с
+    "MinIntensity": 0.2,        // ниже — урона нет
+    "LogHits": true,            // строки урона в script-лог
+    "Heartbeat": true           // статус раз в минуту
+}
+```
+
+Маршрут фронта (startPosition/endPosition) и частицы остаются в `config.cpp`
+аддона — их читает сам движок из CfgWorlds.

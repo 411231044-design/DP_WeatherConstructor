@@ -1,27 +1,62 @@
-// KR_SandstormPort: игровой слой песчаной бури (серверный скрипт мода).
-// Автостарт цикла бурь + урон здоровью/шоку; укрытия и защита лица —
-// ванильная логика ScriptedSandstormController.GetIntensityForPlayer и
-// GetProtectionLevel(DEF_DUST_PARTICLE_BREATH). Настройки — классы
-// константы ниже в этом файле.
+// DP_SandstormPort: игровой слой песчаной бури (серверный скрипт мода).
+//
+// Автостарт цикла бурь + урон здоровью/шоку; укрытия и защита лица — ванильная
+// логика ScriptedSandstormController.GetIntensityForPlayer и GetProtectionLevel
+// (DEF_DUST_PARTICLE_BREATH). Настройки: DarkProjectConfig/SandstormPort/config.json
+// в профиле сервера — создаётся с дефолтами при первом старте (паттерн DP_AdminMenu).
+
+class DP_SandstormConfig
+{
+	bool AutoStartEnabled = true;     // мод сам крутит цикл бурь
+	float GatherTimeSeconds = 30;     // разгон магнитуды, с
+	int CooldownSeconds = 60;         // пауза между проходами, с
+
+	bool DamageEnabled = true;        // прямой урон здоровью/шоку в буре
+	float HealthPerSecond = 0.6;      // хп/с при интенсивности 1 без защиты
+	float ShockPerSecond = 0.25;      // шок/с
+	float MinIntensity = 0.2;         // ниже — урона нет
+
+	bool LogHits = true;              // писать ли строки урона в script-лог
+	bool Heartbeat = true;            // статус раз в минуту и первые три тика
+}
 
 class DPSandstormEffects
 {
-	// ── Настройки сервера (перенесены из config.cpp по конвенции мода) ──
-	static const bool DAMAGE_ENABLED = true;   // прямой урон здоровью/шоку в буре
-	static const float HEALTH_PER_SECOND = 0.6;
-	static const float SHOCK_PER_SECOND = 0.25;
-	static const float MIN_INTENSITY = 0.2;    // ниже — урона нет
-	static const bool AUTO_START = true;       // мод сам крутит цикл бурь
-	static const float GATHER_TIME = 30;       // разгон магнитуды, с
-	static const int COOLDOWN_SEC = 60;        // пауза между проходами, с
+	static const string CONFIG_ROOT_DIR = "$profile:DarkProjectConfig";
+	static const string CONFIG_DIR = "$profile:DarkProjectConfig/SandstormPort";
+	static const string CONFIG_FILE = "$profile:DarkProjectConfig/SandstormPort/config.json";
 
 	static const float TICK_SEC = 3.0;
 	static const int TICK_MS = 3000;
 	static const int CLEANUP_EVERY = 20;
 
+	static ref DP_SandstormConfig s_config = null;
 	static int s_cooldownTicks = 0;
 	static int s_cycle = 0;
 	static int s_tickCount = 0;
+
+	static DP_SandstormConfig Config()
+	{
+		if (s_config)
+		{
+			return s_config;
+		}
+
+		MakeDirectory(CONFIG_ROOT_DIR);
+		MakeDirectory(CONFIG_DIR);
+		s_config = new DP_SandstormConfig();
+
+		if (!FileExist(CONFIG_FILE))
+		{
+			JsonFileLoader<DP_SandstormConfig>.JsonSaveFile(CONFIG_FILE, s_config);
+			Print("[DP_SANDSTORM] создан " + CONFIG_FILE + " — правь и перезапусти сервер");
+			return s_config;
+		}
+
+		JsonFileLoader<DP_SandstormConfig>.JsonLoadFile(CONFIG_FILE, s_config);
+		Print("[DP_SANDSTORM] config загружен: автоStart=" + AsInt(s_config.AutoStartEnabled) + " урон=" + AsInt(s_config.DamageEnabled) + " хп/с=" + s_config.HealthPerSecond + " шок/с=" + s_config.ShockPerSecond + " минИнт=" + s_config.MinIntensity);
+		return s_config;
+	}
 
 	static int AsInt(bool b)
 	{
@@ -35,6 +70,7 @@ class DPSandstormEffects
 	static void Tick()
 	{
 		s_tickCount++;
+		DP_SandstormConfig cfg = Config();
 		Weather weather = g_Game.GetWeather();
 		Sandstorm storm = null;
 		if (weather)
@@ -42,8 +78,8 @@ class DPSandstormEffects
 			storm = weather.GetSandstorm();
 		}
 
-		// heartbeat ДО всех ворот: первые три тика и далее каждые 20
-		if (s_tickCount <= 3 || s_tickCount % 20 == 0)
+		// heartbeat: первые три тика и далее каждые 20 (отключается в конфиге)
+		if (cfg.Heartbeat && (s_tickCount <= 3 || s_tickCount % 20 == 0))
 		{
 			int haveStorm = 0;
 			int active = 0;
@@ -72,21 +108,16 @@ class DPSandstormEffects
 			ssc.CheckConnectedPlayers();
 		}
 
-		AutoStartCycle(weather, storm);
+		AutoStartCycle(cfg, weather, storm);
 
 		if (!storm.IsActive())
 		{
 			return;
 		}
-
-		bool enabled = DAMAGE_ENABLED;
-		if (!enabled)
+		if (!cfg.DamageEnabled)
 		{
 			return;
 		}
-		float minIntensity = MIN_INTENSITY;
-		float hpPerSec = HEALTH_PER_SECOND;
-		float shockPerSec = SHOCK_PER_SECOND;
 
 		array<Man> players = new array<Man>();
 		g_Game.GetPlayers(players);
@@ -108,7 +139,7 @@ class DPSandstormEffects
 			{
 				intensity = ssc.GetIntensityForPlayer(pb);
 			}
-			if (intensity <= minIntensity)
+			if (intensity <= cfg.MinIntensity)
 			{
 				continue;
 			}
@@ -120,29 +151,31 @@ class DPSandstormEffects
 				continue;
 			}
 
-			float dmg = hpPerSec * intensity * TICK_SEC;
-			float shock = shockPerSec * intensity * TICK_SEC;
+			float dmg = cfg.HealthPerSecond * intensity * TICK_SEC;
+			float shock = cfg.ShockPerSecond * intensity * TICK_SEC;
 			pb.DecreaseHealth("", "Health", dmg);
 			pb.DecreaseHealth("", "Shock", shock);
 
-			string pname = "unknown";
-			if (pb.GetIdentity())
+			if (cfg.LogHits)
 			{
-				pname = pb.GetIdentity().GetName();
+				string pname = "unknown";
+				if (pb.GetIdentity())
+				{
+					pname = pb.GetIdentity().GetName();
+				}
+				Print("[DP_SANDSTORM] cycle " + s_cycle + " hit " + pname + " intensity=" + intensity + " hp-" + dmg + " shock-" + shock);
 			}
-			Print("[DP_SANDSTORM] cycle " + s_cycle + " hit " + pname + " intensity=" + intensity + " hp-" + dmg + " shock-" + shock);
 		}
 	}
 
 	// Автостарт: как только буря не активна и прошло ожидание — новый цикл.
-	static void AutoStartCycle(Weather weather, Sandstorm storm)
+	static void AutoStartCycle(DP_SandstormConfig cfg, Weather weather, Sandstorm storm)
 	{
-		bool autoStart = AUTO_START;
-		if (!autoStart)
+		if (!cfg.AutoStartEnabled)
 		{
 			return;
 		}
-		int cooldownTicks = COOLDOWN_SEC / TICK_SEC;
+		int cooldownTicks = cfg.CooldownSeconds / TICK_SEC;
 		if (storm.IsActive())
 		{
 			s_cooldownTicks = cooldownTicks;
@@ -154,8 +187,7 @@ class DPSandstormEffects
 			return;
 		}
 
-		float gather = GATHER_TIME;
-		bool ok = storm.Start(gather, false);
+		bool ok = storm.Start(cfg.GatherTimeSeconds, false);
 		s_cycle = s_cycle + 1;
 		Print("[DP_SANDSTORM] cycle " + s_cycle + " auto Start ok=" + AsInt(ok));
 		if (ok)

@@ -1,0 +1,13 @@
+{
+	"AutoStartEnabled": true,
+	"GatherTimeSeconds": 30,
+	"CooldownSeconds": 60,
+
+	"DamageEnabled": true,
+	"HealthPerSecond": 0.6,
+	"ShockPerSecond": 0.25,
+	"MinIntensity": 0.2,
+
+	"LogHits": true,
+	"Heartbeat": true
+}
