@@ -21,9 +21,11 @@ DP_AdminMenu): создаётся с дефолтами при первом ст
 
 | Секция | Что |
 |---|---|
-| `Enabled` | **главный выключатель всей механики** (первая настройка) |
-| `AutoStart` / `RandomStart` / `Damage` | песчаная буря: цикл / случайный старт (шанс при пасмурно, как на Nasdara) / урон |
-| `Blizzard` | вьюга: `RandomStart` (те же ключи), `GatherMinutes`/`DurationMinutes`/`MeltMinutes`, `SnowfallIntensity`, `SnowfallThreshold`, `WindMaximum`, `VolFogStormDensity` (мгла), `VolFogMeltDensity`/`MeltHeightDensity` («замело»), `TemperatureDelta` (холод), `Thundersnow` |
+| `Enabled` | **общий мастер-выключатель** (первая настройка) |
+| `Sandstorm.Enabled` | **выключатель песчаной бури отдельно** |
+| `Sandstorm.AutoStart` / `Sandstorm.RandomStart` / `Sandstorm.Damage` | цикл / случайный старт (шанс при пасмурно) / урон |
+| `Blizzard.Enabled` | **выключатель вьюги отдельно** |
+| `Blizzard.RandomStart` + параметры | случайный старт; `GatherMinutes`/`DurationMinutes`/`MeltMinutes`, `SnowfallIntensity`, `SnowfallThreshold`, `WindMaximum`, `VolFogStormDensity`, `VolFogMeltDensity`/`MeltHeightDensity`, `TemperatureDelta`, `Thundersnow` |
 | `Logging` | строки урона и статус в script-лог |
 
 Маршрут песчаной бури (`startPosition`/`endPosition`, частицы) — в `config.cpp`
@@ -38,7 +40,7 @@ DP_AdminMenu): создаётся с дефолтами при первом ст
 ## Сборка и установка
 
 ```powershell
-.uild.ps1     # -> @DP_WeatherConstructorddons\DP_WeatherConstructor.pbo
+.\build.ps1     # -> @DP_WeatherConstructor\addons\DP_WeatherConstructor.pbo
 ```
 
 Только сервер: `-servermod=@DP_WeatherConstructor`. **Не** подключать мод на

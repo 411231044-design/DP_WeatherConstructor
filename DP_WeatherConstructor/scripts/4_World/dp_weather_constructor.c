@@ -72,12 +72,18 @@ class DPW_LoggingCfg
 	bool Heartbeat = true;           // статус раз в минуту и первые три тика
 }
 
-class DP_WeatherConfig
+class DPW_SandstormCfg
 {
-	bool Enabled = true;             // ГЛАВНЫЙ ВЫКЛЮЧАТЕЛЬ: вся механика мода
+	bool Enabled = true;             // ВЫКЛЮЧАТЕЛЬ песчаной бури (отдельно от вьюги)
 	ref DPW_AutoStartCfg AutoStart = new DPW_AutoStartCfg();
 	ref DPW_RandomStartCfg RandomStart = new DPW_RandomStartCfg();
 	ref DPW_SandstormDamageCfg Damage = new DPW_SandstormDamageCfg();
+}
+
+class DP_WeatherConfig
+{
+	bool Enabled = true;             // ГЛАВНЫЙ ВЫКЛЮЧАТЕЛЬ: вся механика мода
+	ref DPW_SandstormCfg Sandstorm = new DPW_SandstormCfg();
 	ref DPW_BlizzardCfg Blizzard = new DPW_BlizzardCfg();
 	ref DPW_LoggingCfg Logging = new DPW_LoggingCfg();
 }
@@ -127,7 +133,7 @@ class DPWeatherEffects
 		}
 
 		JsonFileLoader<DP_WeatherConfig>.JsonLoadFile(CONFIG_FILE, s_config);
-		Print("[DP_WEATHER] config загружен: механика=" + AsInt(s_config.Enabled) + " буря=" + AsInt(s_config.RandomStart.Enabled) + " вьюга=" + AsInt(s_config.Blizzard.Enabled) + " урон=" + AsInt(s_config.Damage.Enabled));
+		Print("[DP_WEATHER] config загружен: механика=" + AsInt(s_config.Enabled) + " буря=" + AsInt(s_config.Sandstorm.Enabled) + " вьюга=" + AsInt(s_config.Blizzard.Enabled));
 		return s_config;
 	}
 
@@ -163,8 +169,14 @@ class DPWeatherEffects
 			return;
 		}
 
-		BlizzardTick(cfg, weather);
-		SandstormTick(cfg, weather);
+		if (cfg.Blizzard.Enabled)
+		{
+			BlizzardTick(cfg, weather);
+		}
+		if (cfg.Sandstorm.Enabled)
+		{
+			SandstormTick(cfg, weather);
+		}
 	}
 
 	static string HbLine(Weather weather)
@@ -345,7 +357,7 @@ class DPWeatherEffects
 		AutoStartCycle(cfg, weather, storm);
 		RandomStartCheck(cfg, weather, storm);
 
-		if (!storm.IsActive() || !cfg.Damage.Enabled)
+		if (!storm.IsActive() || !cfg.Sandstorm.Damage.Enabled)
 		{
 			return;
 		}
@@ -370,7 +382,7 @@ class DPWeatherEffects
 			{
 				intensity = ssc.GetIntensityForPlayer(pb);
 			}
-			if (intensity <= cfg.Damage.MinIntensity)
+			if (intensity <= cfg.Sandstorm.Damage.MinIntensity)
 			{
 				continue;
 			}
@@ -382,8 +394,8 @@ class DPWeatherEffects
 				continue;
 			}
 
-			float dmg = cfg.Damage.HealthPerSecond * intensity * TICK_SEC;
-			float shock = cfg.Damage.ShockPerSecond * intensity * TICK_SEC;
+			float dmg = cfg.Sandstorm.Damage.HealthPerSecond * intensity * TICK_SEC;
+			float shock = cfg.Sandstorm.Damage.ShockPerSecond * intensity * TICK_SEC;
 			pb.DecreaseHealth("", "Health", dmg);
 			pb.DecreaseHealth("", "Shock", shock);
 
@@ -402,11 +414,11 @@ class DPWeatherEffects
 	// Постоянный цикл бурь (по умолчанию выключен).
 	static void AutoStartCycle(DP_WeatherConfig cfg, Weather weather, Sandstorm storm)
 	{
-		if (!cfg.AutoStart.Enabled)
+		if (!cfg.Sandstorm.AutoStart.Enabled)
 		{
 			return;
 		}
-		int cooldownTicks = cfg.AutoStart.CooldownSeconds / TICK_SEC;
+		int cooldownTicks = cfg.Sandstorm.AutoStart.CooldownSeconds / TICK_SEC;
 		if (storm.IsActive())
 		{
 			s_cooldownTicks = cooldownTicks;
@@ -417,14 +429,14 @@ class DPWeatherEffects
 			s_cooldownTicks = s_cooldownTicks - 1;
 			return;
 		}
-		StartStorm(cfg, weather, storm, cfg.AutoStart.GatherTimeSeconds);
+		StartStorm(cfg, weather, storm, cfg.Sandstorm.AutoStart.GatherTimeSeconds);
 		s_cooldownTicks = cooldownTicks;
 	}
 
 	// Случайный старт при условиях — как на Nasdara.
 	static void RandomStartCheck(DP_WeatherConfig cfg, Weather weather, Sandstorm storm)
 	{
-		if (!cfg.RandomStart.Enabled)
+		if (!cfg.Sandstorm.RandomStart.Enabled)
 		{
 			return;
 		}
@@ -437,7 +449,7 @@ class DPWeatherEffects
 			s_cooldownTicks = s_cooldownTicks - 1;
 			return;
 		}
-		int intervalTicks = (cfg.RandomStart.CheckIntervalMinutes * 60) / TICK_SEC;
+		int intervalTicks = (cfg.Sandstorm.RandomStart.CheckIntervalMinutes * 60) / TICK_SEC;
 		if (intervalTicks < 1)
 		{
 			intervalTicks = 1;
@@ -447,18 +459,18 @@ class DPWeatherEffects
 			return;
 		}
 		float overcast = weather.GetOvercast().GetActual();
-		if (overcast < cfg.RandomStart.MinOvercast)
+		if (overcast < cfg.Sandstorm.RandomStart.MinOvercast)
 		{
 			return;
 		}
 		float roll = Math.RandomFloat01() * 100.0;
-		if (roll >= cfg.RandomStart.ChancePercent)
+		if (roll >= cfg.Sandstorm.RandomStart.ChancePercent)
 		{
 			return;
 		}
-		Print("[DP_WEATHER] буря: случайный старт, бросок=" + roll + " шанс=" + cfg.RandomStart.ChancePercent + " overcast=" + overcast);
-		StartStorm(cfg, weather, storm, cfg.AutoStart.GatherTimeSeconds);
-		s_cooldownTicks = (cfg.AutoStart.CooldownSeconds / TICK_SEC);
+		Print("[DP_WEATHER] буря: случайный старт, бросок=" + roll + " шанс=" + cfg.Sandstorm.RandomStart.ChancePercent + " overcast=" + overcast);
+		StartStorm(cfg, weather, storm, cfg.Sandstorm.AutoStart.GatherTimeSeconds);
+		s_cooldownTicks = (cfg.Sandstorm.AutoStart.CooldownSeconds / TICK_SEC);
 	}
 
 	// Старт песчаной бури с погодной обвязкой (ветер по направлению фронта).
