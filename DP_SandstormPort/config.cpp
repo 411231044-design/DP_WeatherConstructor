@@ -22,7 +22,7 @@ class CfgMods
 		credits = "KitTysh";
 		author = "KitTysh";
 		authorID = "0";
-		version = "1.1.0";
+		version = "0.1.0";
 		extra = 0;
 		type = "servermod";
 

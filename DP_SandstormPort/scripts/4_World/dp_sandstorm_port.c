@@ -1,23 +1,45 @@
 // DP_SandstormPort: игровой слой песчаной бури (серверный скрипт мода).
 //
-// Автостарт цикла бурь + урон здоровью/шоку; укрытия и защита лица — ванильная
-// логика ScriptedSandstormController.GetIntensityForPlayer и GetProtectionLevel
-// (DEF_DUST_PARTICLE_BREATH). Настройки: DarkProjectConfig/SandstormPort/config.json
-// в профиле сервера — создаётся с дефолтами при первом старте (паттерн DP_AdminMenu).
+// Конфиг: DarkProjectConfig/SandstormPort/config.json в профиле сервера, создаётся
+// с дефолтами при первом старте (паттерн DP_AdminMenu). Маршрут фронта задаётся в
+// config.cpp аддона (CfgWorlds >> Weather >> Sandstorm) — его читает сам движок.
+
+class DP_SandstormAutoStartCfg
+{
+	bool Enabled = false;            // автостарт по дефолту ВЫКЛЮЧЕН
+	float GatherTimeSeconds = 30;    // разгон магнитуды, с
+	int CooldownSeconds = 60;        // пауза между проходами, с
+}
+
+class DP_SandstormRandomStartCfg
+{
+	bool Enabled = true;             // случайный старт при условиях (как на Nasdara)
+	float ChancePercent = 8;         // шанс на проверке (у Nasdara — 8%)
+	float MinOvercast = 0.75;        // буря возможна только при пасмурной погоде
+	int CheckIntervalMinutes = 10;   // как часто бросок
+}
+
+class DP_SandstormDamageCfg
+{
+	bool Enabled = true;             // прямой урон здоровью/шоку в буре
+	float HealthPerSecond = 0.6;     // хп/с при интенсивности 1 без защиты
+	float ShockPerSecond = 0.25;     // шок/с
+	float MinIntensity = 0.2;        // ниже — урона нет
+}
+
+class DP_SandstormLoggingCfg
+{
+	bool LogHits = true;             // строки урона в script-лог
+	bool Heartbeat = true;           // статус раз в минуту и первые три тика
+}
 
 class DP_SandstormConfig
 {
-	bool AutoStartEnabled = true;     // мод сам крутит цикл бурь
-	float GatherTimeSeconds = 30;     // разгон магнитуды, с
-	int CooldownSeconds = 60;         // пауза между проходами, с
-
-	bool DamageEnabled = true;        // прямой урон здоровью/шоку в буре
-	float HealthPerSecond = 0.6;      // хп/с при интенсивности 1 без защиты
-	float ShockPerSecond = 0.25;      // шок/с
-	float MinIntensity = 0.2;         // ниже — урона нет
-
-	bool LogHits = true;              // писать ли строки урона в script-лог
-	bool Heartbeat = true;            // статус раз в минуту и первые три тика
+	bool Enabled = true;             // ГЛАВНЫЙ ВЫКЛЮЧАТЕЛЬ: вся механика мода
+	ref DP_SandstormAutoStartCfg AutoStart = new DP_SandstormAutoStartCfg();
+	ref DP_SandstormRandomStartCfg RandomStart = new DP_SandstormRandomStartCfg();
+	ref DP_SandstormDamageCfg Damage = new DP_SandstormDamageCfg();
+	ref DP_SandstormLoggingCfg Logging = new DP_SandstormLoggingCfg();
 }
 
 class DPSandstormEffects
@@ -54,7 +76,7 @@ class DPSandstormEffects
 		}
 
 		JsonFileLoader<DP_SandstormConfig>.JsonLoadFile(CONFIG_FILE, s_config);
-		Print("[DP_SANDSTORM] config загружен: автоStart=" + AsInt(s_config.AutoStartEnabled) + " урон=" + AsInt(s_config.DamageEnabled) + " хп/с=" + s_config.HealthPerSecond + " шок/с=" + s_config.ShockPerSecond + " минИнт=" + s_config.MinIntensity);
+		Print("[DP_SANDSTORM] config загружен: механика=" + AsInt(s_config.Enabled) + " автоStart=" + AsInt(s_config.AutoStart.Enabled) + " случайныйStart=" + AsInt(s_config.RandomStart.Enabled) + " урон=" + AsInt(s_config.Damage.Enabled));
 		return s_config;
 	}
 
@@ -71,6 +93,13 @@ class DPSandstormEffects
 	{
 		s_tickCount++;
 		DP_SandstormConfig cfg = Config();
+
+		// ГЛАВНЫЙ ВЫКЛЮЧАТЕЛЬ: без него мод полностью молчит
+		if (!cfg.Enabled)
+		{
+			return;
+		}
+
 		Weather weather = g_Game.GetWeather();
 		Sandstorm storm = null;
 		if (weather)
@@ -78,8 +107,7 @@ class DPSandstormEffects
 			storm = weather.GetSandstorm();
 		}
 
-		// heartbeat: первые три тика и далее каждые 20 (отключается в конфиге)
-		if (cfg.Heartbeat && (s_tickCount <= 3 || s_tickCount % 20 == 0))
+		if (cfg.Logging.Heartbeat && (s_tickCount <= 3 || s_tickCount % 20 == 0))
 		{
 			int haveStorm = 0;
 			int active = 0;
@@ -109,12 +137,9 @@ class DPSandstormEffects
 		}
 
 		AutoStartCycle(cfg, weather, storm);
+		RandomStartCheck(cfg, weather, storm);
 
-		if (!storm.IsActive())
-		{
-			return;
-		}
-		if (!cfg.DamageEnabled)
+		if (!storm.IsActive() || !cfg.Damage.Enabled)
 		{
 			return;
 		}
@@ -139,7 +164,7 @@ class DPSandstormEffects
 			{
 				intensity = ssc.GetIntensityForPlayer(pb);
 			}
-			if (intensity <= cfg.MinIntensity)
+			if (intensity <= cfg.Damage.MinIntensity)
 			{
 				continue;
 			}
@@ -151,12 +176,12 @@ class DPSandstormEffects
 				continue;
 			}
 
-			float dmg = cfg.HealthPerSecond * intensity * TICK_SEC;
-			float shock = cfg.ShockPerSecond * intensity * TICK_SEC;
+			float dmg = cfg.Damage.HealthPerSecond * intensity * TICK_SEC;
+			float shock = cfg.Damage.ShockPerSecond * intensity * TICK_SEC;
 			pb.DecreaseHealth("", "Health", dmg);
 			pb.DecreaseHealth("", "Shock", shock);
 
-			if (cfg.LogHits)
+			if (cfg.Logging.LogHits)
 			{
 				string pname = "unknown";
 				if (pb.GetIdentity())
@@ -168,14 +193,14 @@ class DPSandstormEffects
 		}
 	}
 
-	// Автостарт: как только буря не активна и прошло ожидание — новый цикл.
+	// Постоянный цикл бурь (по умолчанию выключен).
 	static void AutoStartCycle(DP_SandstormConfig cfg, Weather weather, Sandstorm storm)
 	{
-		if (!cfg.AutoStartEnabled)
+		if (!cfg.AutoStart.Enabled)
 		{
 			return;
 		}
-		int cooldownTicks = cfg.CooldownSeconds / TICK_SEC;
+		int cooldownTicks = cfg.AutoStart.CooldownSeconds / TICK_SEC;
 		if (storm.IsActive())
 		{
 			s_cooldownTicks = cooldownTicks;
@@ -186,10 +211,57 @@ class DPSandstormEffects
 			s_cooldownTicks = s_cooldownTicks - 1;
 			return;
 		}
+		StartStorm(cfg, weather, storm, cfg.AutoStart.GatherTimeSeconds);
+		s_cooldownTicks = cooldownTicks;
+	}
 
-		bool ok = storm.Start(cfg.GatherTimeSeconds, false);
+	// Случайный старт при условиях — как на Nasdara: время от времени, при
+	// пасмурной погоде, бросок кубика; шанс и порог настраиваются.
+	static void RandomStartCheck(DP_SandstormConfig cfg, Weather weather, Sandstorm storm)
+	{
+		if (!cfg.RandomStart.Enabled)
+		{
+			return;
+		}
+		if (storm.IsActive())
+		{
+			return;
+		}
+		if (s_cooldownTicks > 0)
+		{
+			s_cooldownTicks = s_cooldownTicks - 1;
+			return;
+		}
+		int intervalTicks = (cfg.RandomStart.CheckIntervalMinutes * 60) / TICK_SEC;
+		if (intervalTicks < 1)
+		{
+			intervalTicks = 1;
+		}
+		if (s_tickCount % intervalTicks != 0)
+		{
+			return;
+		}
+		float overcast = weather.GetOvercast().GetActual();
+		if (overcast < cfg.RandomStart.MinOvercast)
+		{
+			return;
+		}
+		float roll = Math.RandomFloat01() * 100.0;
+		if (roll >= cfg.RandomStart.ChancePercent)
+		{
+			return;
+		}
+		Print("[DP_SANDSTORM] случайный старт: бросок=" + roll + " шанс=" + cfg.RandomStart.ChancePercent + " overcast=" + overcast);
+		StartStorm(cfg, weather, storm, cfg.AutoStart.GatherTimeSeconds);
+		s_cooldownTicks = (cfg.AutoStart.CooldownSeconds / TICK_SEC);
+	}
+
+	// Старт бури с погодной обвязкой (ветер по направлению фронта, как dev-консоль).
+	static void StartStorm(DP_SandstormConfig cfg, Weather weather, Sandstorm storm, float gatherTime)
+	{
+		bool ok = storm.Start(gatherTime, false);
 		s_cycle = s_cycle + 1;
-		Print("[DP_SANDSTORM] cycle " + s_cycle + " auto Start ok=" + AsInt(ok));
+		Print("[DP_SANDSTORM] cycle " + s_cycle + " Start ok=" + AsInt(ok) + " pos=" + storm.GetPosition() + " dir=" + storm.GetDirection());
 		if (ok)
 		{
 			float angle = weather.WindDirectionToAngle(storm.GetDirection());
@@ -199,7 +271,6 @@ class DPSandstormEffects
 			weather.GetWindMagnitude().Set(20.0, 30, holdTime);
 			weather.GetRain().Set(0, 30, holdTime);
 		}
-		s_cooldownTicks = cooldownTicks;
 	}
 
 	// Максимальная защита от твёрдых частиц по очкам/маскам игрока.

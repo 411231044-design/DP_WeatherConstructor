@@ -77,23 +77,26 @@ DayZ 1.30.164.200, выделенный сервер Windows, Черногорк
 
 ## Настройка
 
-Все игровые параметры — в `DarkProjectConfig/SandstormPort/config.json` в профиле
-сервера (паттерн DP_AdminMenu): файл создаётся с дефолтами при первом старте,
-правится и подхватывается после перезапуска сервера. Пример — [example/config.json](example/config.json).
+`DarkProjectConfig/SandstormPort/config.json` в профиле сервера (паттерн
+DP_AdminMenu): создаётся с дефолтами при первом старте, правится и подхватывается
+после перезапуска. Пример — [example/config.json](example/config.json).
 
-```json
-{
-    "AutoStartEnabled": true,   // мод сам крутит цикл бурь
-    "GatherTimeSeconds": 30,    // разгон магнитуды, с
-    "CooldownSeconds": 60,      // пауза между проходами, с
-    "DamageEnabled": true,      // прямой урон в буре
-    "HealthPerSecond": 0.6,     // хп/с при интенсивности 1
-    "ShockPerSecond": 0.25,     // шок/с
-    "MinIntensity": 0.2,        // ниже — урона нет
-    "LogHits": true,            // строки урона в script-лог
-    "Heartbeat": true           // статус раз в минуту
-}
-```
+| Секция | Ключ | Дефолт | Что |
+|---|---|---|---|
+| (корень) | `Enabled` | `true` | **главный выключатель всей механики** (первая настройка) |
+| `AutoStart` | `Enabled` | `false` | постоянный цикл бурь — по умолчанию ВЫКЛЮЧЕН |
+| | `GatherTimeSeconds` / `CooldownSeconds` | 30 / 60 | разгон магнитуды / пауза между проходами |
+| `RandomStart` | `Enabled` | `true` | случайный старт при условиях, как на Nasdara |
+| | `ChancePercent` | 8 | шанс на проверке (у Nasdara — 8%) |
+| | `MinOvercast` | 0.75 | буря возможна только при пасмурной погоде |
+| | `CheckIntervalMinutes` | 10 | как часто бросок |
+| `Damage` | `Enabled` / `HealthPerSecond` / `ShockPerSecond` / `MinIntensity` | true / 0.6 / 0.25 / 0.2 | прямой урон в буре |
+| `Logging` | `LogHits` / `Heartbeat` | true / true | строки урона и статус в script-лог |
 
-Маршрут фронта (startPosition/endPosition) и частицы остаются в `config.cpp`
-аддона — их читает сам движок из CfgWorlds.
+Маршрут фронта (`startPosition`/`endPosition`, частицы) задаётся в `config.cpp`
+аддона — его читает сам движок из CfgWorlds, скриптового сеттера маршрута у бурь
+нет. При необходимости позиции можно вынести и в JSON: движковые поля маршрута
+умеет писать graft-плагин (см. разбор в KR_GRAFTED, RESEARCH/dayz/weather.md) —
+не реализовано, чтобы не плодить сущности.
+
+## Важно (проверено живыми прогонами)
