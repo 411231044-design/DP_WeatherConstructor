@@ -1,4 +1,4 @@
-# KR_SandstormPort — движковые песчаные бури на любой карте (DayZ 1.30+)
+# DP_SandstormPort — движковые песчаные бури на любой карте (DayZ 1.30+)
 
 Переносит движковую песчаную бурю (`SandstormController`, механика DLC-карты Badlands)
 на любую другую карту — проверено на Черногорке, ванильным клиентом, сервер 1.30.164.200.
@@ -41,13 +41,13 @@ class CfgWorlds
 Нужен DayZ Tools (AddonBuilder):
 
 ```powershell
-.\build.ps1            # соберёт @KR_SandstormPort\addons\KR_SandstormPort.pbo
+.\build.ps1            # соберёт @DP_SandstormPort\addons\DP_SandstormPort.pbo
 ```
 
 ## Установка (только сервер!)
 
 ```
--servermod=@KR_SandstormPort
+-servermod=@DP_SandstormPort
 ```
 
 Координаты маршрута — на свой вкус: фронт едет от `startPosition` к `endPosition`
