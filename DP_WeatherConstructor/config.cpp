@@ -26,10 +26,15 @@ class CfgMods
 		extra = 0;
 		type = "servermod";
 
-		dependencies[] = {"World", "Mission"};
+		dependencies[] = {"Game", "World", "Mission"};
 
 		class defs
 		{
+			class gameScriptModule
+			{
+				value = "";
+				files[] = {"DP_WeatherConstructor/scripts/3_Game"};
+			};
 			class worldScriptModule
 			{
 				value = "";

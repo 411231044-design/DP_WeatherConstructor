@@ -83,7 +83,7 @@ class DPW_SandstormCfg
 class DP_WeatherConfig
 {
 	bool Enabled = true;             // ГЛАВНЫЙ ВЫКЛЮЧАТЕЛЬ: вся механика мода
-	ref DPW_SandstormCfg Sandstorm = new DPW_SandstormCfg();
+	ref DPW_SandstormCfg Sand = new DPW_SandstormCfg();
 	ref DPW_BlizzardCfg Blizzard = new DPW_BlizzardCfg();
 	ref DPW_LoggingCfg Logging = new DPW_LoggingCfg();
 }
@@ -133,7 +133,7 @@ class DPWeatherEffects
 		}
 
 		JsonFileLoader<DP_WeatherConfig>.JsonLoadFile(CONFIG_FILE, s_config);
-		Print("[DP_WEATHER] config загружен: механика=" + AsInt(s_config.Enabled) + " буря=" + AsInt(s_config.Sandstorm.Enabled) + " вьюга=" + AsInt(s_config.Blizzard.Enabled));
+		Print("[DP_WEATHER] config загружен: механика=" + AsInt(s_config.Enabled) + " буря=" + AsInt(s_config.Sand.Enabled) + " вьюга=" + AsInt(s_config.Blizzard.Enabled));
 		return s_config;
 	}
 
@@ -173,7 +173,7 @@ class DPWeatherEffects
 		{
 			BlizzardTick(cfg, weather);
 		}
-		if (cfg.Sandstorm.Enabled)
+		if (cfg.Sand.Enabled)
 		{
 			SandstormTick(cfg, weather);
 		}
@@ -276,6 +276,7 @@ class DPWeatherEffects
 
 	static void BlizzardStart(DP_WeatherConfig cfg, Weather weather)
 	{
+		DPWeatherCold.Set(cfg.Blizzard.TemperatureDelta);
 		s_blizzardCycle = s_blizzardCycle + 1;
 		s_blizzardState = BLIZZARD_STORM;
 		s_blizzardPhaseTicks = 0;
@@ -297,6 +298,7 @@ class DPWeatherEffects
 
 	static void BlizzardMelt(DP_WeatherConfig cfg, Weather weather)
 	{
+		DPWeatherCold.Set(cfg.Blizzard.TemperatureDelta * 0.5);
 		s_blizzardState = BLIZZARD_MELT;
 		s_blizzardPhaseTicks = 0;
 
@@ -309,6 +311,7 @@ class DPWeatherEffects
 
 	static void BlizzardEnd(Weather weather)
 	{
+		DPWeatherCold.Set(0);
 		s_blizzardState = BLIZZARD_IDLE;
 		s_blizzardPhaseTicks = 0;
 
@@ -357,7 +360,7 @@ class DPWeatherEffects
 		AutoStartCycle(cfg, weather, storm);
 		RandomStartCheck(cfg, weather, storm);
 
-		if (!storm.IsActive() || !cfg.Sandstorm.Damage.Enabled)
+		if (!storm.IsActive() || !cfg.Sand.Damage.Enabled)
 		{
 			return;
 		}
@@ -382,7 +385,7 @@ class DPWeatherEffects
 			{
 				intensity = ssc.GetIntensityForPlayer(pb);
 			}
-			if (intensity <= cfg.Sandstorm.Damage.MinIntensity)
+			if (intensity <= cfg.Sand.Damage.MinIntensity)
 			{
 				continue;
 			}
@@ -394,8 +397,8 @@ class DPWeatherEffects
 				continue;
 			}
 
-			float dmg = cfg.Sandstorm.Damage.HealthPerSecond * intensity * TICK_SEC;
-			float shock = cfg.Sandstorm.Damage.ShockPerSecond * intensity * TICK_SEC;
+			float dmg = cfg.Sand.Damage.HealthPerSecond * intensity * TICK_SEC;
+			float shock = cfg.Sand.Damage.ShockPerSecond * intensity * TICK_SEC;
 			pb.DecreaseHealth("", "Health", dmg);
 			pb.DecreaseHealth("", "Shock", shock);
 
@@ -414,11 +417,11 @@ class DPWeatherEffects
 	// Постоянный цикл бурь (по умолчанию выключен).
 	static void AutoStartCycle(DP_WeatherConfig cfg, Weather weather, Sandstorm storm)
 	{
-		if (!cfg.Sandstorm.AutoStart.Enabled)
+		if (!cfg.Sand.AutoStart.Enabled)
 		{
 			return;
 		}
-		int cooldownTicks = cfg.Sandstorm.AutoStart.CooldownSeconds / TICK_SEC;
+		int cooldownTicks = cfg.Sand.AutoStart.CooldownSeconds / TICK_SEC;
 		if (storm.IsActive())
 		{
 			s_cooldownTicks = cooldownTicks;
@@ -429,14 +432,14 @@ class DPWeatherEffects
 			s_cooldownTicks = s_cooldownTicks - 1;
 			return;
 		}
-		StartStorm(cfg, weather, storm, cfg.Sandstorm.AutoStart.GatherTimeSeconds);
+		StartStorm(cfg, weather, storm, cfg.Sand.AutoStart.GatherTimeSeconds);
 		s_cooldownTicks = cooldownTicks;
 	}
 
 	// Случайный старт при условиях — как на Nasdara.
 	static void RandomStartCheck(DP_WeatherConfig cfg, Weather weather, Sandstorm storm)
 	{
-		if (!cfg.Sandstorm.RandomStart.Enabled)
+		if (!cfg.Sand.RandomStart.Enabled)
 		{
 			return;
 		}
@@ -449,7 +452,7 @@ class DPWeatherEffects
 			s_cooldownTicks = s_cooldownTicks - 1;
 			return;
 		}
-		int intervalTicks = (cfg.Sandstorm.RandomStart.CheckIntervalMinutes * 60) / TICK_SEC;
+		int intervalTicks = (cfg.Sand.RandomStart.CheckIntervalMinutes * 60) / TICK_SEC;
 		if (intervalTicks < 1)
 		{
 			intervalTicks = 1;
@@ -459,18 +462,18 @@ class DPWeatherEffects
 			return;
 		}
 		float overcast = weather.GetOvercast().GetActual();
-		if (overcast < cfg.Sandstorm.RandomStart.MinOvercast)
+		if (overcast < cfg.Sand.RandomStart.MinOvercast)
 		{
 			return;
 		}
 		float roll = Math.RandomFloat01() * 100.0;
-		if (roll >= cfg.Sandstorm.RandomStart.ChancePercent)
+		if (roll >= cfg.Sand.RandomStart.ChancePercent)
 		{
 			return;
 		}
-		Print("[DP_WEATHER] буря: случайный старт, бросок=" + roll + " шанс=" + cfg.Sandstorm.RandomStart.ChancePercent + " overcast=" + overcast);
-		StartStorm(cfg, weather, storm, cfg.Sandstorm.AutoStart.GatherTimeSeconds);
-		s_cooldownTicks = (cfg.Sandstorm.AutoStart.CooldownSeconds / TICK_SEC);
+		Print("[DP_WEATHER] буря: случайный старт, бросок=" + roll + " шанс=" + cfg.Sand.RandomStart.ChancePercent + " overcast=" + overcast);
+		StartStorm(cfg, weather, storm, cfg.Sand.AutoStart.GatherTimeSeconds);
+		s_cooldownTicks = (cfg.Sand.AutoStart.CooldownSeconds / TICK_SEC);
 	}
 
 	// Старт песчаной бури с погодной обвязкой (ветер по направлению фронта).
@@ -512,16 +515,5 @@ class DPWeatherEffects
 			}
 		}
 		return 0.0;
-	}
-}
-
-// Холод вьюги: вычет из итоговой температуры мира (ветер, высота, облачность
-// уже учтены внутри super — наш вычет ложится поверх).
-modded class WorldData
-{
-	override float GetTemperature(Object object, EEnvironmentTemperatureComponent properties)
-	{
-		float result = super.GetTemperature(object, properties);
-		return result + DPWeatherEffects.BlizzardTempDelta();
 	}
 }

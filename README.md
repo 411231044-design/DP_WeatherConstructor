@@ -22,8 +22,8 @@ DP_AdminMenu): создаётся с дефолтами при первом ст
 | Секция | Что |
 |---|---|
 | `Enabled` | **общий мастер-выключатель** (первая настройка) |
-| `Sandstorm.Enabled` | **выключатель песчаной бури отдельно** |
-| `Sandstorm.AutoStart` / `Sandstorm.RandomStart` / `Sandstorm.Damage` | цикл / случайный старт (шанс при пасмурно) / урон |
+| `Sand.Enabled` | **выключатель песчаной бури отдельно** |
+| `Sand.AutoStart` / `Sand.RandomStart` / `Sand.Damage` | цикл / случайный старт (шанс при пасмурно) / урон |
 | `Blizzard.Enabled` | **выключатель вьюги отдельно** |
 | `Blizzard.RandomStart` + параметры | случайный старт; `GatherMinutes`/`DurationMinutes`/`MeltMinutes`, `SnowfallIntensity`, `SnowfallThreshold`, `WindMaximum`, `VolFogStormDensity`, `VolFogMeltDensity`/`MeltHeightDensity`, `TemperatureDelta`, `Thundersnow` |
 | `Logging` | строки урона и статус в script-лог |
