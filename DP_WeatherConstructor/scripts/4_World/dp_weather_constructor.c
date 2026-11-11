@@ -113,6 +113,7 @@ class DPWeatherEffects
 	static int s_blizzardPhaseTicks = 0;
 	static int s_blizzardCooldownTicks = 0;
 	static int s_blizzardCycle = 0;
+	static bool s_sandStoppedByDisable = false;
 
 	static DP_WeatherConfig Config()
 	{
@@ -176,6 +177,9 @@ class DPWeatherEffects
 		if (cfg.Sand.Enabled)
 		{
 			SandstormTick(cfg, weather);
+		}		else
+		{
+			StopSandstormIfDisabled(weather);
 		}
 	}
 
@@ -204,6 +208,24 @@ class DPWeatherEffects
 			snow = weather.GetSnowfall().GetActual().ToString();
 		}
 		return "[DP_WEATHER] hb tick=" + s_tickCount + " буря=" + active + " scripted=" + scripted + " вьюга=" + s_blizzardState + " снег=" + snow + " pos=" + pos;
+	}
+
+	// Выключенная в конфиге подсистема глушит и уже идущую бурю — включая
+	// восстановленную из прошлого сеанса (иначе выключатель не действует
+	// до конца прохода).
+	static void StopSandstormIfDisabled(Weather weather)
+	{
+		Sandstorm storm = weather.GetSandstorm();
+		if (!storm)
+		{
+			return;
+		}
+		if (storm.IsActive() && !s_sandStoppedByDisable)
+		{
+			storm.Stop(10, false);
+			Print("[DP_WEATHER] подсистема бурь выключена в конфиге — останавливаю активную бурю");
+		}
+		s_sandStoppedByDisable = storm.IsActive();
 	}
 
 	// ── Подсистема: вьюга ─────────────────────────────────────────────────────
